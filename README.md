@@ -11,6 +11,7 @@ All assets conform to [EVES-003](https://ascs-ev.github.io/EVES/EVES-003/eves-00
 | Python | ≥ 3.10 | `python3 --version` |
 | Git | ≥ 2.34 | with LFS support (`git lfs install`) |
 | Make | any | GNU Make recommended |
+| Node.js | ≥ 18 | needed for Markdown linting (`npx markdownlint-cli2`) |
 | Podman *(optional)* | ≥ 4.0 | only for `make wizard` |
 
 **macOS:** `brew install python git git-lfs make`
@@ -42,11 +43,11 @@ make validate
 
 ```text
 generated/input/                          generated/output/<asset-name>/
-├── input_manifest.json    ──┐            ├── manifest.json
+├── input_manifest.json    ──┐            ├── manifest_reference.json
 ├── *.xosc (scenario)        │  make      ├── simulation-data/
 ├── *.xosc (catalogs)        ├──────→     │   └── *.xosc
 ├── impression-01.png        │ generate   ├── metadata/
-├── docs / readme            │            │   └── scenario.json
+├── docs / readme            │            │   └── scenario_instance.json
 └── LICENSE                ──┘            ├── media/
                                           ├── documentation/
                                           ├── validation-reports/
@@ -61,6 +62,8 @@ generated/input/                          generated/output/<asset-name>/
 | **How** | Pipeline auto-extracts metadata from `.xosc` + input manifest | SHACL-driven web UI enriches metadata interactively |
 | **User action** | Place files in `generated/input/`, run one command | Start wizard at `http://localhost:4200`, fill forms, generate |
 | **Best for** | CI/CD, batch processing, reproducible builds | First-time users, complex metadata, manual enrichment |
+
+> **Note:** `make wizard` requires **Podman** and is currently optional/experimental. The wizard may not yet support all asset types — see [sl-5-8-asset-tools](https://github.com/openMSL/sl-5-8-asset-tools) for upstream status.
 
 ## Available Make Targets
 
@@ -107,7 +110,7 @@ scenario-asset-example/
 │   └── output/                     ← Pipeline output (gitignored)
 ├── submodules/
 │   ├── sl-5-8-asset-tools/         ← Asset creation pipeline
-│   │   └── submodules/
+│   │   └── external/
 │   │       └── ontology-management-base/  ← SHACL + ontologies
 │   └── EVES/                       ← EVES specification
 ├── Makefile                        ← Central command center
@@ -123,7 +126,7 @@ scenario-asset-example/
 The pipeline automatically adds [Gaia-X Trust Framework](https://gaia-x.eu/) vocabulary to every generated asset:
 
 - `gx:name`, `gx:license`, `gx:copyrightOwnedBy`, `gx:resourcePolicy`
-- These live in closed GX-compliant nodes inside `metadata/scenario.json`
+- These live in closed GX-compliant nodes inside `metadata/scenario_instance.json`
 - Domain-specific properties (scenario type, format version, content) use open ENVITED-X wrapper shapes
 
 Users don't need to understand Gaia-X — the pipeline handles compliance automatically.
@@ -134,12 +137,18 @@ Users don't need to understand Gaia-X — the pipeline handles compliance automa
 # Setup
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e submodules/sl-5-8-asset-tools[dev,qc-deps]
+pip install -r submodules/sl-5-8-asset-tools/requirements.txt
+pip install -e submodules/sl-5-8-asset-tools/external/ontology-management-base
+
+# Prepare input (converts input_manifest.json to uploadedFiles.json)
+python3 scripts/convert_manifest.py generated/input/input_manifest.json
 
 # Generate
-python3 -m submodules.sl-5-8-asset-tools.src.main \
-    --input-dir generated/input \
-    --output-dir generated/output
+cd submodules/sl-5-8-asset-tools && \
+python3 -X frozen_modules=off -m asset_extraction.main \
+    ../../generated/input/uploadedFiles.json \
+    -config configs \
+    -out ../../generated/output
 ```
 
 ## FAQ
@@ -162,7 +171,7 @@ python3 -m submodules.sl-5-8-asset-tools.src.main \
 
 ### Which SHACL shapes validate scenario metadata?
 
-The [Scenario Ontology](https://github.com/ASCS-eV/ontology-management-base/blob/main/scenario/) from ontology-management-base. Shapes are loaded offline from the nested submodule — no internet required for validation.
+The [Scenario Ontology](https://github.com/ASCS-eV/ontology-management-base/blob/main/scenario/) from ontology-management-base. Shapes are loaded offline from the `submodules/sl-5-8-asset-tools/external/ontology-management-base/` submodule — no internet required for validation.
 
 ### How do I enable debug logging?
 
