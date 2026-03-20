@@ -59,6 +59,8 @@ setup: $(ACTIVATE_SCRIPT)
 	@"$(PYTHON)" -m pip install -r "$(ASSET_TOOLS)/requirements.txt" --quiet
 	@echo "[INFO] Installing ontology-management-base (editable)..."
 	@"$(PYTHON)" -m pip install -e "$(OMB)" --quiet
+	@echo "[INFO] Installing pre-commit..."
+	@"$(PYTHON)" -m pip install pre-commit --quiet
 	@echo "[INFO] Installing quality checker packages (--no-deps to avoid upstream lxml/numpy constraints)..."
 	@"$(PYTHON)" -m pip install poetry-core --quiet 2>/dev/null || true
 	@"$(PYTHON)" -m pip install --no-deps \

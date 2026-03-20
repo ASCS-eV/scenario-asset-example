@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: validate
         name: validate asset JSON-LD
-        entry: make validate
+        entry: bash -c 'if [ -d generated/output ] && [ "$(ls -A generated/output 2>/dev/null)" ]; then make validate; else echo "[SKIP] No generated output yet (run: make generate)"; fi'
         language: system
         pass_filenames: false
         always_run: true
