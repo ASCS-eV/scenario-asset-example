@@ -8,7 +8,7 @@ VENV ?= .venv
 
 # Submodule path aliases (hide deep paths)
 ASSET_TOOLS := submodules/sl-5-8-asset-tools
-OMB         := $(ASSET_TOOLS)/submodules/ontology-management-base
+OMB         := $(ASSET_TOOLS)/external/ontology-management-base
 
 # OS detection for cross-platform support (Windows vs Unix)
 ifeq ($(OS),Windows_NT)
@@ -55,9 +55,10 @@ all: lint validate
 # ── Setup & Install ──────────────────────────────────────────────────
 
 setup: $(ACTIVATE_SCRIPT)
-	@"$(MAKE)" -C "$(ASSET_TOOLS)" setup VENV="$(CURDIR)/$(VENV)" PYTHON="$(CURDIR)/$(PYTHON)"
-	@echo "[INFO] Installing quality checker runtime dependencies..."
-	@"$(PYTHON)" -m pip install -e "$(ASSET_TOOLS)[qc-deps]" --quiet
+	@echo "[INFO] Installing asset-tools pipeline dependencies..."
+	@"$(PYTHON)" -m pip install -r "$(ASSET_TOOLS)/requirements.txt" --quiet
+	@echo "[INFO] Installing ontology-management-base (editable)..."
+	@"$(PYTHON)" -m pip install -e "$(OMB)" --quiet
 	@echo "[INFO] Installing quality checker packages (--no-deps to avoid upstream lxml/numpy constraints)..."
 	@"$(PYTHON)" -m pip install poetry-core --quiet 2>/dev/null || true
 	@"$(PYTHON)" -m pip install --no-deps \
@@ -72,12 +73,9 @@ $(PYTHON):
 	@"$(PYTHON)" -m pip install --upgrade pip
 
 $(ACTIVATE_SCRIPT): $(PYTHON)
-	@"$(PYTHON)" -m pip install -e "$(ASSET_TOOLS)[dev]" --quiet
 	@touch "$(ACTIVATE_SCRIPT)"
 
-install:
-	$(call check_dev_setup)
-	@"$(MAKE)" -C "$(ASSET_TOOLS)" install VENV="$(CURDIR)/$(VENV)" PYTHON="$(CURDIR)/$(PYTHON)"
+install: setup
 	@echo "[OK] Install complete"
 
 # ── Lint & Format ────────────────────────────────────────────────────
@@ -107,9 +105,9 @@ import pathlib, sys; \
 out = pathlib.Path('$(GEN_OUTPUT)'); \
 dirs = sorted(d for d in out.iterdir() if d.is_dir()) if out.exists() else []; \
 sys.exit('[SKIP] No generated asset found (run: make generate)') if not dirs else None; \
-bad = [str(d) for d in dirs if not [p for p in [d / 'manifest.json', d / 'metadata' / 'scenario.json'] if p.exists()]]; \
+bad = [str(d) for d in dirs if not [p for p in [d / 'manifest_reference.json', d / 'metadata' / 'scenario_instance.json'] if p.exists()]]; \
 sys.exit('[ERR] No manifest or metadata found in: ' + ', '.join(bad)) if bad else None; \
-all_paths = [str(p) for d in dirs for p in [d / 'manifest.json', d / 'metadata' / 'scenario.json'] if p.exists()]; \
+all_paths = [str(p) for d in dirs for p in [d / 'manifest_reference.json', d / 'metadata' / 'scenario_instance.json'] if p.exists()]; \
 print(' '.join(all_paths)); \
 " > .validate_paths 2>&1 && \
 	"$(PYTHON)" -m src.tools.validators.validation_suite \
@@ -129,16 +127,13 @@ ifeq ($(SUBCMD),clean)
 	@echo "[OK] Generated output removed (input/ blueprint preserved)"
 else
 	$(call check_dev_setup)
-	@"$(PYTHON)" -c "\
-import pathlib, sys; \
-im = pathlib.Path('$(GEN_INPUT)') / 'input_manifest.json'; \
-sys.exit('[ERR] No input_manifest.json in $(GEN_INPUT)/. Stage input files first.') if not im.exists() else None; \
-"
-	@"$(MAKE)" -C "$(ASSET_TOOLS)" generate \
-		INPUT_DIR="$(CURDIR)/$(GEN_INPUT)" \
-		OUTPUT_DIR="$(CURDIR)/$(GEN_OUTPUT)" \
-		VENV="$(CURDIR)/$(VENV)" \
-		PYTHON="$(CURDIR)/$(PYTHON)"
+	@echo "[INFO] Preparing pipeline input..."
+	@"$(PYTHON)" scripts/convert_manifest.py "$(GEN_INPUT)/input_manifest.json"
+	@echo "[INFO] Running asset extraction pipeline..."
+	@cd "$(ASSET_TOOLS)" && "$(CURDIR)/$(PYTHON)" -X frozen_modules=off -m asset_extraction.main \
+		"$(CURDIR)/$(GEN_INPUT)/uploadedFiles.json" \
+		-config "$(CURDIR)/$(GEN_CONFIGS)" \
+		-out "$(CURDIR)/$(GEN_OUTPUT)"
 	@echo ""
 	@echo "[OK] Asset generated in $(GEN_OUTPUT)/"
 endif
@@ -146,11 +141,8 @@ endif
 # ── Wizard (SD Creation Wizard frontend + API) ───────────────────────
 
 wizard:
-ifeq ($(SUBCMD),stop)
-	@"$(MAKE)" -C "$(ASSET_TOOLS)" wizard stop
-else
-	@"$(MAKE)" -C "$(ASSET_TOOLS)" wizard
-endif
+	@echo "[INFO] SD Creation Wizard is not yet available for this asset type."
+	@echo "  See: https://github.com/openMSL/sl-5-8-asset-tools for upstream status."
 
 # ── Clean ────────────────────────────────────────────────────────────
 
@@ -160,17 +152,17 @@ ifeq ($(SUBCMD),all)
 	@echo "[INFO] Cleaning everything..."
 	@rm -rf build/ dist/ .pytest_cache/ .mypy_cache/ "$(GEN_OUTPUT)"
 	@rm -rf *.egg-info
-	@rm -f *.zip
-	@echo "[INFO] Removing virtual environment and submodules..."
+	@rm -f *.zip .validate_paths
+	@rm -f "$(GEN_INPUT)/uploadedFiles.json"
+	@echo "[INFO] Removing virtual environment..."
 	@rm -rf "$(VENV)"
-	@"$(MAKE)" -C "$(ASSET_TOOLS)" clean all 2>/dev/null || true
 	@echo "[OK] Full clean complete -- run 'make setup' to reinitialise"
 else
 	@echo "[INFO] Cleaning..."
 	@rm -rf build/ dist/ .pytest_cache/ .mypy_cache/ "$(GEN_OUTPUT)"
 	@rm -rf *.egg-info
-	@rm -f *.zip
-	@"$(MAKE)" -C "$(ASSET_TOOLS)" clean 2>/dev/null || true
+	@rm -f *.zip .validate_paths
+	@rm -f "$(GEN_INPUT)/uploadedFiles.json"
 	@echo "[OK] Cleaned"
 endif
 else
@@ -188,20 +180,13 @@ help:
 	@echo "  make generate                Run full pipeline: .xosc -> generated/ asset + zip"
 	@echo "  make generate clean          Remove generated/output/ directory"
 	@echo ""
-	@echo "  You can also run the pipeline for a custom input directory:"
-	@echo "  make -C submodules/sl-5-8-asset-tools generate \\"
-	@echo "      INPUT_DIR=/path/to/input OUTPUT_DIR=/path/to/output"
-	@echo ""
 	@echo "  make lint                    Lint (validates asset JSON-LD + Markdown)"
 	@echo "  make lint-md                 Lint Markdown files only"
 	@echo "  make format                  Auto-fix Markdown lint issues"
 	@echo "  make validate                Validate generated/output/ asset against SHACL"
 	@echo ""
-	@echo "  make wizard                  Start SD Creation Wizard (Podman, auto-setup if needed)"
-	@echo "  make wizard stop             Stop the wizard containers"
-	@echo ""
 	@echo "  make clean                   Remove all build artifacts, caches, and generated/"
-	@echo "  make clean all               Clean + remove venv and submodules (full reset)"
+	@echo "  make clean all               Clean + remove venv (full reset)"
 	@echo ""
 	@echo "Debug logging:"
 	@echo "  SL58_LOG_MODE=debug make generate"
@@ -212,7 +197,7 @@ help:
 	@echo "  Same input files produce identical UUIDs, timestamps, and CID."
 
 # ── Catch-all for subcommand arguments ───────────────────────────────
-ifneq ($(filter setup generate wizard clean install,$(firstword $(MAKECMDGOALS))),)
+ifneq ($(filter setup generate clean install,$(firstword $(MAKECMDGOALS))),)
 %:
 	@:
 endif

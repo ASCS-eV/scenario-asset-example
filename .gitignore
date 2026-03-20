@@ -3,3 +3,5 @@ output.log
 *.zip
 /generated/output/
 !/generated/input/
+/generated/input/uploadedFiles.json
+.validate_paths
