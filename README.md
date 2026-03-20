@@ -1,82 +1,192 @@
 # Scenario Asset Example
 
-This repository serves as a reference for onboarding a Scenario asset into the ENVITED X Dataspace and can be used as a template for other dataspaces as well. It contains the full description as **`manifest_reference.json` - file** in addition to a consistent example of an Scenario asset data.
+Reference repository for onboarding an **OpenSCENARIO Scenario** simulation asset into the [ENVITED-X Dataspace](https://envited-x.net). Use it as a template for your own scenario assets.
 
-A complete **`asset`** in a specific domain includes the data itself and all necessary files for describing, evaluating, and visualizing the dataset.
+All assets conform to [EVES-003](https://ascs-ev.github.io/EVES/EVES-003/eves-003.html).
 
-The repository has the following folder structure and the asset sample can be downloaded as artifact from the lastest release (**`asset.zip`**).
+## Prerequisites
 
-All ENVITED X Dataspace assets are defined according to [EVES-003](https://ascs-ev.github.io/EVES/EVES-003/eves-003.html).
+| Tool | Version | Notes |
+|------|---------|-------|
+| Python | ≥ 3.10 | `python3 --version` |
+| Git | ≥ 2.34 | with LFS support (`git lfs install`) |
+| Make | any | GNU Make recommended |
+| Podman *(optional)* | ≥ 4.0 | only for `make wizard` |
 
-## Installation
+**macOS:** `brew install python git git-lfs make`
 
-If you want to use the validation scripts from 📁 `ontology-management-base/src` then you need to isntall the following dependencies:
+**Ubuntu/Debian:** `sudo apt-get install python3-full python3-venv git git-lfs make`
+
+**Windows:** install [Python](https://python.org/downloads), [Git for Windows](https://git-scm.com) (includes Git Bash + Make). Use Git Bash or PowerShell. For Podman: [Podman Desktop](https://podman-desktop.io).
+
+## Quick Start
 
 ```bash
-# clone and init submodules
-git clone --recurse-submodules https://github.com/GAIA-X4PLC-AAD/scenario-asset-example.git
+# Clone with submodules
+git clone --recurse-submodules https://github.com/ASCS-eV/scenario-asset-example.git
+cd scenario-asset-example
 
-# On Windows use python instead of python3
-sudo apt-get install python3-full
-python3 -m venv .venv/
-source .venv/bin/activate # On Windows use: source .venv/Scripts/activate
-python3 -m pip install -r ontology-management-base/requirements.txt
-pre-commit install
-# Example check
-python3 ontology-management-base/src/check_jsonld_against_shacl_schema.py asset/manifest_reference.json asset/metadata/scenario_instance.json
+# Setup environment
+make setup
+
+# Generate asset from input blueprint
+make generate
+
+# Validate generated asset
+make validate
 ```
 
-## Repo Structure
+## Asset Creation Flow
 
-The Repo has the following structure:
+### Input → Output
 
-📁 `.github` *-> github workflows*
+```text
+generated/input/                          generated/output/<asset-name>/
+├── input_manifest.json    ──┐            ├── manifest.json
+├── *.xosc (scenario)        │  make      ├── simulation-data/
+├── *.xosc (catalogs)        ├──────→     │   └── *.xosc
+├── impression-01.png        │ generate   ├── metadata/
+├── docs / readme            │            │   └── scenario.json
+└── LICENSE                ──┘            ├── media/
+                                          ├── documentation/
+                                          ├── validation-reports/
+                                          └── <CID>.zip
+```
 
-📁 `asset` *-> contains the asset*
+### Two Creation Paths
 
-- 📄 *`README.md`* <i style="color:gray;">(defines asset folder structure)</i>
-- 📄 *`..more..`* <i style="color:gray;">(see folder)</i>
+| | Automated (default) | Wizard-assisted |
+|---|---|---|
+| **Command** | `make generate` | `make wizard` → `make generate` |
+| **How** | Pipeline auto-extracts metadata from `.xosc` + input manifest | SHACL-driven web UI enriches metadata interactively |
+| **User action** | Place files in `generated/input/`, run one command | Start wizard at `http://localhost:4200`, fill forms, generate |
+| **Best for** | CI/CD, batch processing, reproducible builds | First-time users, complex metadata, manual enrichment |
 
-📁 `ontology-management-base`
+## Available Make Targets
 
-- contains all SHACLs and ontologies needed for onboarding and registering datasets, including semantic and syntactic validation of the provided metadata.
-- Versioned git submodule of [ontology-management-base](https://github.com/GAIA-X4PLC-AAD/ontology-management-base).
+| Command | Description |
+|---------|-------------|
+| `make setup` | Create venv, install all dependencies (incl. QC tools) |
+| `make generate` | Run full pipeline: `.xosc` → complete asset + zip |
+| `make generate clean` | Remove `generated/output/` (preserves input blueprint) |
+| `make validate` | Validate generated asset JSON-LD against SHACL shapes |
+| `make lint` | Lint everything (JSON-LD validation + Markdown) |
+| `make lint-md` | Lint Markdown files only |
+| `make format` | Auto-fix Markdown lint issues |
+| `make wizard` | Start SD Creation Wizard (requires Podman) |
+| `make wizard stop` | Stop wizard containers |
+| `make clean` | Remove build artifacts, caches, generated output |
+| `make clean all` | Full reset (+ remove venv) |
+| `make help` | Show all available commands |
 
-📄 `CONTRIBUTING.md` *-> contributing guidelines*
+### Debug Logging
 
-📄 `README.md` *-> documentation of the Repo and the asset*
+```bash
+SL58_LOG_MODE=debug make generate
+```
 
-### Legend
+### Deterministic Mode (Reproducible Output)
 
-- 📁 `folder-name`: A folder in the repo.
-- 📄 `assetName`: A file in the repo.
-- <i style="color:gray;">(optional)</i> : This file or folder is optional and can be added or omitted as needed.
+```bash
+SL58_DETERMINISTIC=1 make generate
+```
+
+Same input files produce identical UUIDs, timestamps, and CID.
+
+## Repository Structure
+
+```text
+scenario-asset-example/
+├── generated/
+│   ├── input/                      ← Pipeline inputs (tracked in git)
+│   │   ├── input_manifest.json     ← JSON-LD manifest describing inputs
+│   │   ├── *.xosc                  ← OpenSCENARIO files
+│   │   ├── *.png                   ← Preview images
+│   │   ├── *_readme.txt            ← Documentation
+│   │   └── LICENSE                 ← Asset license
+│   └── output/                     ← Pipeline output (gitignored)
+├── submodules/
+│   ├── sl-5-8-asset-tools/         ← Asset creation pipeline
+│   │   └── submodules/
+│   │       └── ontology-management-base/  ← SHACL + ontologies
+│   └── EVES/                       ← EVES specification
+├── Makefile                        ← Central command center
+├── .pre-commit-config.yaml         ← Pre-commit hooks
+├── .github/
+│   ├── workflows/release.yml       ← CI/CD pipeline
+│   └── copilot-instructions.md     ← AI agent instructions
+└── README.md
+```
+
+## Metadata & Gaia-X
+
+The pipeline automatically adds [Gaia-X Trust Framework](https://gaia-x.eu/) vocabulary to every generated asset:
+
+- `gx:name`, `gx:license`, `gx:copyrightOwnedBy`, `gx:resourcePolicy`
+- These live in closed GX-compliant nodes inside `metadata/scenario.json`
+- Domain-specific properties (scenario type, format version, content) use open ENVITED-X wrapper shapes
+
+Users don't need to understand Gaia-X — the pipeline handles compliance automatically.
+
+## Option B — Manual Pipeline (Without Make)
+
+```bash
+# Setup
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e submodules/sl-5-8-asset-tools[dev,qc-deps]
+
+# Generate
+python3 -m submodules.sl-5-8-asset-tools.src.main \
+    --input-dir generated/input \
+    --output-dir generated/output
+```
 
 ## FAQ
 
-### How can I easily create a Simulation Asset?
+### How do I create my own Scenario asset?
 
-- **Preparation :** *Ensure you understood this repository and the necessary data to create a SimulationAsset for the ENVITED-X Data Space and familiarize yourself with the concept of an asset [EVES-003](https://ascs-ev.github.io/EVES/EVES-003/eves-003.html).*
+1. Fork this repository
+2. Replace files in `generated/input/` with your `.xosc` scenario, catalogs, images, and docs
+3. Update `generated/input/input_manifest.json` to list your files
+4. Run `make generate && make validate`
+5. Tag a release (`git tag v1.0.0 && git push --tags`) to trigger CI
 
-- **Provider Tools :** *You can use the [GaiaX 4 PLC-AAD Provider Tools](https://github.com/GAIA-X4PLC-AAD/provider-tools) to create your own asset in a guided way.*
+### Which access roles exist?
 
-### Which roles can I define for access management?
+| Role | Description |
+|------|-------------|
+| `isOwner` | Full access — can download the asset |
+| `isRegistered` | Access to certain files but no download |
+| `isPublic` | Viewing rights to metadata and previews |
 
-- **isOwner** *: The owner has full access to the asset and its associated files. This role includes permissions to download the asset.*
+### Which SHACL shapes validate scenario metadata?
 
-- **isRegistered** *: A registered user has access to certain files and data within the asset but can't download the asset.*
+The [Scenario Ontology](https://github.com/ASCS-eV/ontology-management-base/blob/main/scenario/) from ontology-management-base. Shapes are loaded offline from the nested submodule — no internet required for validation.
 
-- **isPublic** *: A public user has only viewing rights to certain files or metadata.*
+### How do I enable debug logging?
 
-### Which SCHAL - Files are used to generate the domainMetadata.json ?
+```bash
+SL58_LOG_MODE=debug make generate
+```
 
--You need to use the following Ontology from [Ontology Management Base Repository](https://github.com/GAIA-X4PLC-AAD/ontology-management-base) - [Scenario Ontology](https://github.com/GAIA-X4PLC-AAD/ontology-management-base/blob/main/scenario/scenario_ontology.ttl).
+Shows full subprocess command lines, stdout/stderr, and tracebacks.
 
-## Usage
+### How do I fix stale QC checker packages?
 
-  1. Read the `README.md` - file.
-  2. Download the lastest `asset.zip` - file release.
-  3. Explore the provided data files and documentation.
-  4. Create the same folder and file structure for your asset, along with an appropriate `scenario_instance.json` - file and `manifest_reference.json` - file.
-  5. Zip your fills to an `asset.zip` - file.
-  6. You are now ready to upload `asset.zip` - file and start registration of your asset.
+```bash
+make clean all
+make setup
+```
+
+## Release Workflow
+
+The GitHub Actions workflow triggers on version tags (`v*.*.*`):
+
+1. Checks out repository with LFS and recursive submodules
+2. Runs `make setup && make generate && make validate`
+3. Uploads the pipeline-generated CID-named `.zip` as a GitHub release artifact via `softprops/action-gh-release@v2`
+
+## License
+
+[MPL-2.0](LICENSE)

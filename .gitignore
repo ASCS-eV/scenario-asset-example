@@ -1,3 +1,5 @@
-.venv/
-.vscode/
-asset.zip
+/.venv/
+output.log
+*.zip
+/generated/output/
+!/generated/input/
