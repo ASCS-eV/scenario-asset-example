@@ -1,0 +1,8 @@
+# Enforce LF line endings for all text files
+* text=auto eol=lf
+
+# Git LFS - track large binary assets in generated/input/
+# Enable when LFS is configured on the remote:
+# generated/input/**/*.png filter=lfs diff=lfs merge=lfs -text
+# generated/input/**/*.pdf filter=lfs diff=lfs merge=lfs -text
+# generated/input/**/*.xosc filter=lfs diff=lfs merge=lfs -text

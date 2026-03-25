@@ -1,0 +1,82 @@
+{
+  "@context": [
+    "https://w3id.org/ascs-ev/envited-x/manifest/v5/",
+    {
+      "envited-x": "https://w3id.org/ascs-ev/envited-x/envited-x/v3/"
+    }
+  ],
+  "@id": "did:web:registry.gaia-x.eu:Scenario:generated",
+  "@type": "envited-x:Manifest",
+  "hasArtifacts": [
+    {
+      "@type": "Link",
+      "hasCategory": {
+        "@id": "envited-x:isSimulationData"
+      },
+      "hasAccessRole": {
+        "@id": "envited-x:isOwner"
+      },
+      "hasFileMetadata": {
+        "@type": "FileMetadata",
+        "filePath": "Testfeld_Niedersachsen_ALKS_Scenario_4_4_1_Cut-In_No_Collision_xosc_template.xosc",
+        "mimeType": "application/x-xosc"
+      }
+    },
+    {
+      "@type": "Link",
+      "hasCategory": {
+        "@id": "envited-x:isSimulationData"
+      },
+      "hasAccessRole": {
+        "@id": "envited-x:isPublic"
+      },
+      "hasFileMetadata": {
+        "@type": "FileMetadata",
+        "filePath": "controller_catalog.xosc",
+        "mimeType": "application/x-xosc"
+      }
+    },
+    {
+      "@type": "Link",
+      "hasCategory": {
+        "@id": "envited-x:isMedia"
+      },
+      "hasAccessRole": {
+        "@id": "envited-x:isPublic"
+      },
+      "hasFileMetadata": {
+        "@type": "FileMetadata",
+        "filePath": "impression-01.png",
+        "mimeType": "image/png"
+      }
+    },
+    {
+      "@type": "Link",
+      "hasCategory": {
+        "@id": "envited-x:isDocumentation"
+      },
+      "hasAccessRole": {
+        "@id": "envited-x:isPublic"
+      },
+      "hasFileMetadata": {
+        "@type": "FileMetadata",
+        "filePath": "ALKS_Scenario_4_4_1_CutInNoCollision_TEMPLATE_TestfeldNiedersachsen_readme.txt",
+        "mimeType": "text/plain"
+      }
+    }
+  ],
+  "hasLicense": {
+    "@type": "Link",
+    "hasCategory": {
+      "@id": "envited-x:isLicense"
+    },
+    "hasAccessRole": {
+      "@id": "envited-x:isPublic"
+    },
+    "hasFileMetadata": {
+      "@type": "FileMetadata",
+      "filePath": "LICENSE",
+      "mimeType": "text/plain"
+    }
+  }
+}
