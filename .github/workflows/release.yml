@@ -3,50 +3,47 @@ name: Create Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers the workflow on version tags
+      - 'v*.*.*'
 
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository (+ download lfs dependencies)
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
-          lfs: true
-    - name: Checkout LFS objects
-      run: git lfs checkout
+        lfs: true
+        submodules: recursive
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
 
-    - name: Install zip
-      run: sudo apt-get install -y zip
+    - name: Setup environment
+      run: make setup
 
-    - name: Create zip file
+    - name: Generate asset
+      run: make generate
+
+    - name: Validate asset
+      run: make validate
+
+    - name: Find release artifact
+      id: artifact
       run: |
-        cd asset
-        zip -r ../Testfeld_Niedersachsen_ALKS_Scenario_4_4_1_Cut-In_No_Collision_xosc_template.zip ./*
- 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+        ZIP=$(find generated/output -name '*.zip' -type f | head -1)
+        if [ -z "$ZIP" ]; then echo "No .zip found in generated/output/" >&2; exit 1; fi
+        echo "path=$ZIP" >> "$GITHUB_OUTPUT"
+        echo "name=$(basename "$ZIP")" >> "$GITHUB_OUTPUT"
 
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create release
+      uses: softprops/action-gh-release@v2
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./Testfeld_Niedersachsen_ALKS_Scenario_4_4_1_Cut-In_No_Collision_xosc_template.zip
-        asset_name: Testfeld_Niedersachsen_ALKS_Scenario_4_4_1_Cut-In_No_Collision_xosc_template.zip
-        asset_content_type: application/zip
+        files: ${{ steps.artifact.outputs.path }}
