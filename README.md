@@ -110,7 +110,7 @@ scenario-asset-example/
 │   └── output/                     ← Pipeline output (gitignored)
 ├── submodules/
 │   ├── sl-5-8-asset-tools/         ← Asset creation pipeline
-│   │   └── external/
+│   │   └── submodules/
 │   │       └── ontology-management-base/  ← SHACL + ontologies
 │   └── EVES/                       ← EVES specification
 ├── Makefile                        ← Central command center
@@ -138,7 +138,7 @@ Users don't need to understand Gaia-X — the pipeline handles compliance automa
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r submodules/sl-5-8-asset-tools/requirements.txt
-pip install -e submodules/sl-5-8-asset-tools/external/ontology-management-base
+pip install -e submodules/sl-5-8-asset-tools/submodules/ontology-management-base
 
 # Prepare input (converts input_manifest.json to uploadedFiles.json)
 python3 scripts/convert_manifest.py generated/input/input_manifest.json
@@ -171,7 +171,7 @@ python3 -X frozen_modules=off -m asset_extraction.main \
 
 ### Which SHACL shapes validate scenario metadata?
 
-The [Scenario Ontology](https://github.com/ASCS-eV/ontology-management-base/blob/main/scenario/) from ontology-management-base. Shapes are loaded offline from the `submodules/sl-5-8-asset-tools/external/ontology-management-base/` submodule — no internet required for validation.
+The [Scenario Ontology](https://github.com/ASCS-eV/ontology-management-base/blob/main/scenario/) from ontology-management-base. Shapes are loaded offline from the `submodules/sl-5-8-asset-tools/submodules/ontology-management-base/` submodule — no internet required for validation.
 
 ### How do I enable debug logging?
 

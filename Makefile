@@ -8,7 +8,7 @@ VENV ?= .venv
 
 # Submodule path aliases (hide deep paths)
 ASSET_TOOLS := submodules/sl-5-8-asset-tools
-OMB         := $(ASSET_TOOLS)/external/ontology-management-base
+OMB         := $(ASSET_TOOLS)/submodules/ontology-management-base
 
 # OS detection for cross-platform support (Windows vs Unix)
 ifeq ($(OS),Windows_NT)

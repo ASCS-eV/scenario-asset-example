@@ -26,7 +26,7 @@ The pipeline adds [Gaia-X Trust Framework](https://gaia-x.eu/) vocabulary to eve
 - `generated/input/` — Staged pipeline inputs (manifest, `.xosc` files, media, docs)
 - `generated/output/` — Pipeline output: complete EVES-003 asset ready for validation and release
 - `submodules/sl-5-8-asset-tools/` — Asset creation and processing tools (git submodule from [openMSL/sl-5-8-asset-tools](https://github.com/openMSL/sl-5-8-asset-tools))
-  - `external/ontology-management-base/` — Nested submodule: SHACL shapes, OWL ontologies, JSON-LD contexts, and Python validation tools (from [ASCS-eV/ontology-management-base](https://github.com/ASCS-eV/ontology-management-base))
+  - `submodules/ontology-management-base/` — Nested submodule: SHACL shapes, OWL ontologies, JSON-LD contexts, and Python validation tools (from [ASCS-eV/ontology-management-base](https://github.com/ASCS-eV/ontology-management-base))
 - `submodules/EVES/` — The [EVES specification](https://ascs-ev.github.io/EVES/EVES-003/eves-003.html) defining Simulation Asset structure
 
 ## Setup and Validation
